@@ -17,7 +17,21 @@ COPY . .
 RUN npm run build
 
 # Set production environment
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+    BRIDGE_PORT=8080 \
+    LOG_DIR=/var/log/naver-mcp
+
+# Install bash, python3, pip and mcp-proxy for SSE bridge
+RUN apk add --no-cache bash python3 py3-pip && \
+    python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir mcp-proxy && \
+    ln -s /opt/venv/bin/mcp-proxy /usr/local/bin/mcp-proxy
+
+# Copy entrypoint for SSE bridge
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+EXPOSE 8080
 
 # Command to run the server
-CMD [ "node", "dist/src/index.js" ] 
+ENTRYPOINT [ "/usr/local/bin/docker-entrypoint.sh" ]

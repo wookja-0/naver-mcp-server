@@ -2,8 +2,9 @@ import axios, { AxiosRequestConfig } from "axios";
 import { NaverSearchConfig } from "../schemas/search.schemas.js";
 
 export abstract class NaverApiCoreClient {
-  protected searchBaseUrl = "http://192.168.0.116:8091/naver/v1/search";
-  protected datalabBaseUrl = "http://192.168.0.116:8091/naver/v1/datalab";
+  private readonly baseUrl = (process.env.NAVER_API_BASE_URL || "https://openapi.naver.com").replace(/\/$/, "");
+  protected searchBaseUrl = `${this.baseUrl}/v1/search`;
+  protected datalabBaseUrl = `${this.baseUrl}/v1/datalab`;
   protected config: NaverSearchConfig | null = null;
 
   initialize(config: NaverSearchConfig) {

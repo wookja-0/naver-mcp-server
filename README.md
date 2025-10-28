@@ -1,48 +1,68 @@
-# Naver MCP Server – SSE 방식 Docker 이미지 빌드 가이드
+# Naver MCP Server – SSE 배포 가이드 (단일 Dockerfile)
 
-외부 프록시 서버 → Naver API(역방향 프록시) 가정 하에, SSE 방식으로 MCP 서버를 빌드/배포하는 방법입니다.
+단일 Dockerfile 하나로 빌드/실행하며, `NAVER_API_BASE_URL` 한 변수만으로 Naver API 또는 프록시를 지정합니다. 앱은 SSE 노출을 위해 컨테이너 내부에서 `mcp-proxy`를 사용합니다.
 
 ---
 
-## 1) Naver API 엔드포인트 수정
+## 1) 환경변수
 
-`/src/clients/naver-api-core.client.ts`
+- `NAVER_API_BASE_URL` (필수): 기본 `https://openapi.naver.com`
+  - 예) 프록시 사용: `http://<proxy-host>:<port>/naver`
+- `NAVER_API_KEY` (필수, Secret 권장)
+- `NAVER_CLIENT_ID` (필수, Secret 권장)
+- `NAVER_CLIENT_SECRET` (필수, Secret 권장)
+- `NAVER_PROFILE` (선택, 배포 프로파일 구분용. 예: `prod`, `dev`)
+- `BRIDGE_PORT` (선택, 기본 8080)
+- `NODE_ENV` (선택, 기본 production)
 
-```ts
-// AS-IS
-export abstract class NaverApiCoreClient {
-  protected searchBaseUrl = "https://openapi.naver.com/naver/v1/search";
-  protected datalabBaseUrl = "https://openapi.naver.com/naver/v1/datalab";
+앱 내부에서는 `NAVER_API_BASE_URL` 뒤에 `/v1/search`, `/v1/datalab` 경로가 자동으로 붙습니다. 후행 `/`는 자동 제거됩니다.
 
-// TO-BE
-export abstract class NaverApiCoreClient {
-  protected searchBaseUrl = "http://192.168.0.116:8091/naver/v1/search";
-  protected datalabBaseUrl = "http://192.168.0.116:8091/naver/v1/datalab";
-```
----
+### 환경변수 설정 예시
 
-## 2) Docker 이미지 빌드
-
-### Base image 빌드
 ```bash
-docker build -t {이미지명} .
-# EX) docker build -t 192.168.0.116/dmp-poc/mcp-server:v1.2 .
+# 도커 실행 예시 (프록시 사용 케이스)
+docker run -p 8080:8080 \
+  -e NAVER_API_BASE_URL=http://<proxy-host>:<port>/naver \
+  -e NAVER_API_KEY=aaaaaa \
+  -e NAVER_CLIENT_ID=xxxxxxxx \
+  -e NAVER_CLIENT_SECRET=yyyyyyyy \
+  -e NAVER_PROFILE=prod \
+  <registry>/<repo>/naver-mcp:sse
 ```
 
-> **중요:** `Dockerfile.sse`의 base 이미지를 위에서 빌드한 **Base image**로 변경하세요.  
-> 예) `Dockerfile.sse` 상단 `FROM 192.168.0.116/dmp-poc/mcp-server:v1.2`
-
-### SSE image 빌드
-```bash
-docker build -f Dockerfile.sse -t {이미지명} .
-# EX) docker build -f Dockerfile.sse -t 192.168.0.116/dmp-poc/mcp-server:sse-proxy-1027_1 .
+```yaml
+# K8s ConfigMap/Secret 예시 (발췌)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: naver-mcp-config
+data:
+  NAVER_API_BASE_URL: "http://<proxy-host>:<port>/naver"
+  BRIDGE_PORT: "8080"
+  NAVER_PROFILE: "prod"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: naver-mcp-secret
+type: Opaque
+stringData:
+  NAVER_API_KEY: "<your-api-key>"
+  NAVER_CLIENT_ID: "<your-client-id>"
+  NAVER_CLIENT_SECRET: "<your-client-secret>"
 ```
-
-이미지 푸시 후 K8s에 배포합니다.
 
 ---
 
-## 3) 외부 Proxy(NGINX) 설정
+## 2) Docker 빌드/실행
+
+```bash
+# 빌드
+docker build -t <registry>/<repo>/naver-mcp:sse .
+
+---
+
+## 4) 외부 Proxy(NGINX) 설정
 
 ```nginx
 # Naver API (MCP 용)
@@ -63,4 +83,13 @@ location /naver/ {
     proxy_ssl_ciphers HIGH:!aNULL:!MD5;
 }
 ```
+
+---
+
+## 원본 소스 및 라이선스 고지
+
+이 저장소는 공개 저장소 `isnow890/naver-search-mcp`를 기반으로 일부 배포/설정(환경변수, Dockerfile 통합, README) 개선을 적용한 파생본입니다. 원본 저장소와 라이선스는 아래를 참고하세요.
+
+- 원본 저장소: https://github.com/isnow890/naver-search-mcp
+- 라이선스: MIT (원본과 동일)
 
