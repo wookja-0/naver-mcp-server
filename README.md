@@ -1,68 +1,58 @@
 # Naver MCP Server – SSE 배포 가이드 (단일 Dockerfile)
 
-단일 Dockerfile 하나로 빌드/실행하며, `NAVER_API_BASE_URL` 한 변수만으로 Naver API 또는 프록시를 지정합니다. 앱은 SSE 노출을 위해 컨테이너 내부에서 `mcp-proxy`를 사용합니다.
+**Naver MCP Server**는 Naver Open API를 SSE(Server-Sent Events) 기반으로 노출하는 단일 컨테이너 서비스입니다.  
+단일 Dockerfile 하나로 빌드/실행하며, `NAVER_API_BASE_URL` 환경변수 하나로 Naver API 또는 프록시를 지정할 수 있습니다.  
+앱은 SSE 노출을 위해 컨테이너 내부에서 `mcp-proxy`를 사용합니다.
 
 ---
 
 ## 1) 환경변수
 
-- `NAVER_API_BASE_URL` (필수): 기본 `https://openapi.naver.com`
-  - 예) 프록시 사용: `http://<proxy-host>:<port>/naver`
-- `NAVER_API_KEY` (필수, Secret 권장)
-- `NAVER_CLIENT_ID` (필수, Secret 권장)
-- `NAVER_CLIENT_SECRET` (필수, Secret 권장)
-- `NAVER_PROFILE` (선택, 배포 프로파일 구분용. 예: `prod`, `dev`)
-- `BRIDGE_PORT` (선택, 기본 8080)
-- `NODE_ENV` (선택, 기본 production)
+| 변수명 | 필수 여부 | 기본값 | 설명 |
+|--------|------------|--------|------|
+| `NAVER_API_BASE_URL` | 선택 | `https://openapi.naver.com` | Naver API 기본 URL 또는 프록시 주소 |
+| `NAVER_API_KEY` | **필수** | - | Naver API 인증 키 |
+| `NAVER_CLIENT_ID` | **필수** | - | Naver API Client ID |
+| `NAVER_CLIENT_SECRET` | **필수** | - | Naver API Client Secret |
+| `NAVER_PROFILE` | 선택 | - | 배포 프로파일 (`prod`, `dev` 등) |
+| `BRIDGE_PORT` | 선택 | `8080` | 서버 포트 |
+| `NODE_ENV` | 선택 | `production` | Node 환경 변수 |
 
-앱 내부에서는 `NAVER_API_BASE_URL` 뒤에 `/v1/search`, `/v1/datalab` 경로가 자동으로 붙습니다. 후행 `/`는 자동 제거됩니다.
+앱 내부에서는 `NAVER_API_BASE_URL` 뒤에 `/v1/search`, `/v1/datalab` 경로가 자동으로 붙습니다.  
+후행 `/`는 자동 제거됩니다.
 
-### 환경변수 설정 예시
+---
+
+## 2) 소스코드 clone
 
 ```bash
-# 도커 실행 예시 (프록시 사용 케이스)
-docker run -p 8080:8080 \
-  -e NAVER_API_BASE_URL=http://<proxy-host>:<port>/naver \
-  -e NAVER_API_KEY=aaaaaa \
-  -e NAVER_CLIENT_ID=xxxxxxxx \
-  -e NAVER_CLIENT_SECRET=yyyyyyyy \
-  -e NAVER_PROFILE=prod \
-  <registry>/<repo>/naver-mcp:sse
-```
-
-```yaml
-# K8s ConfigMap/Secret 예시 (발췌)
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: naver-mcp-config
-data:
-  NAVER_API_BASE_URL: "http://<proxy-host>:<port>/naver"
-  BRIDGE_PORT: "8080"
-  NAVER_PROFILE: "prod"
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: naver-mcp-secret
-type: Opaque
-stringData:
-  NAVER_API_KEY: "<your-api-key>"
-  NAVER_CLIENT_ID: "<your-client-id>"
-  NAVER_CLIENT_SECRET: "<your-client-secret>"
+git clone https://github.com/wookja-0/naver-mcp-server.git
 ```
 
 ---
 
-## 2) Docker 빌드/실행
+## 3) Docker 빌드/실행
 
 ```bash
 # 빌드
 docker build -t <registry>/<repo>/naver-mcp:sse .
+```
 
----
+### 환경변수 설정 예시 (프록시 미사용)
 
-## 4) 외부 Proxy(NGINX) 설정
+```bash
+# NAVER_API_BASE_URL 생략 가능 (기본값: https://openapi.naver.com)
+
+docker run -p 8080:8080   -e NAVER_API_KEY=aaaaaa   -e NAVER_CLIENT_ID=xxxxxxxx   -e NAVER_CLIENT_SECRET=yyyyyyyy   -e NAVER_PROFILE=prod   <registry>/<repo>/naver-mcp:sse
+```
+
+### 환경변수 설정 예시 (프록시 사용)
+
+```bash
+docker run -p 8080:8080   -e NAVER_API_BASE_URL=http://<proxy-host>:<port>/naver   -e NAVER_API_KEY=aaaaaa   -e NAVER_CLIENT_ID=xxxxxxxx   -e NAVER_CLIENT_SECRET=yyyyyyyy   -e NAVER_PROFILE=prod   <registry>/<repo>/naver-mcp:sse
+```
+
+#### 외부 Proxy (NGINX) 설정
 
 ```nginx
 # Naver API (MCP 용)
@@ -86,10 +76,99 @@ location /naver/ {
 
 ---
 
-## 원본 소스 및 라이선스 고지
+## 4) K8s 배포 시
 
-이 저장소는 공개 저장소 `isnow890/naver-search-mcp`를 기반으로 일부 배포/설정(환경변수, Dockerfile 통합, README) 개선을 적용한 파생본입니다. 원본 저장소와 라이선스는 아래를 참고하세요.
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: naver-mcp-config
+data:
+  NAVER_API_BASE_URL: "http://<proxy-host>:<port>/naver"  # 프록시 서버 사용 시 추가, 미사용 시 제외
+  BRIDGE_PORT: "8080"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: naver-mcp-secret
+type: Opaque
+stringData:
+  NAVER_API_KEY: "<your-api-key>"
+  NAVER_CLIENT_ID: "<your-client-id>"
+  NAVER_CLIENT_SECRET: "<your-client-secret>"
+  NAVER_PROFILE: "<your-profile>"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: naver-mcp-server
+  labels: { app: naver-mcp-server }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: naver-mcp-server }
+  template:
+    metadata:
+      labels: { app: naver-mcp-server }
+    spec:
+      containers:
+        - name: naver-mcp-server
+          image: <registry>/<repo>/naver-mcp:sse
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: naver-mcp-secret
+            - configMapRef:
+                name: naver-mcp-config
+          env:
+            - name: LOG_DIR
+              value: "/var/log/naver-mcp"
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: logs
+              mountPath: /var/log/naver-mcp
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: logs
+          persistentVolumeClaim:
+            claimName: naver-mcp-logs
+```
 
-- 원본 저장소: https://github.com/isnow890/naver-search-mcp
-- 라이선스: MIT (원본과 동일)
+---
 
+## 5) 백엔드(클라이언트) 연결 예시
+
+```python
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+mcp_client = MultiServerMCPClient(
+    {
+        "naver-search-mcp": {
+            "transport": "sse",
+            "url": "http://<mcp-server-host>:8080/sse"  # 예) http://naver-mcp-server.svc.cluster.local:8080/sse
+        }
+    }
+)
+```
+
+> NodePort로 노출한 경우: 워커 노드 IP와 NodePort를 사용
+
+---
+
+## 원본 소스 및 라이선스
+
+- 원본 저장소: [isnow890/naver-search-mcp](https://github.com/isnow890/naver-search-mcp)
+- 라이선스: MIT
+
+---
+
+> Smithery 전용 경로(`/@org/server/mcp?...`)는 사용하지 않습니다.  
+> 서버 컨테이너에는 `NAVER_CLIENT_ID/SECRET`(K8s Secret)이 주입되어 네이버 API를 호출합니다.
