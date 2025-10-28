@@ -14,7 +14,7 @@
 | `NAVER_API_KEY` | **필수** | - | Naver API 인증 키 |
 | `NAVER_CLIENT_ID` | **필수** | - | Naver API Client ID |
 | `NAVER_CLIENT_SECRET` | **필수** | - | Naver API Client Secret |
-| `NAVER_PROFILE` | **필수** | - | 서비스 또는 배포 환경을 식별하는 고유 프로파일 ID |
+| `NAVER_PROFILE` | 선택 | - | 서비스 또는 배포 환경을 식별하는 고유 프로파일 ID |
 | `BRIDGE_PORT` | 선택 | `8080` | 서버 포트 |
 | `NODE_ENV` | 선택 | `production` | Node 환경 변수 |
 
@@ -43,13 +43,13 @@ docker build -t <registry>/<repo>/naver-mcp:sse .
 ```bash
 # NAVER_API_BASE_URL 생략 가능 (기본값: https://openapi.naver.com)
 
-docker run -p 8080:8080   -e NAVER_API_KEY=aaaaaa   -e NAVER_CLIENT_ID=xxxxxxxx   -e NAVER_CLIENT_SECRET=yyyyyyyy   -e NAVER_PROFILE=prod   <registry>/<repo>/naver-mcp:sse
+docker run -p 8080:8080   -e NAVER_API_KEY=aaaaaa   -e NAVER_CLIENT_ID=xxxxxxxx   -e NAVER_CLIENT_SECRET=yyyyyyyy   <registry>/<repo>/naver-mcp:sse
 ```
 
 ### 환경변수 설정 예시 (프록시 사용)
 
 ```bash
-docker run -p 8080:8080   -e NAVER_API_BASE_URL=http://<proxy-host>:<port>/naver   -e NAVER_API_KEY=aaaaaa   -e NAVER_CLIENT_ID=xxxxxxxx   -e NAVER_CLIENT_SECRET=yyyyyyyy   -e NAVER_PROFILE=prod   <registry>/<repo>/naver-mcp:sse
+docker run -p 8080:8080   -e NAVER_API_BASE_URL=http://<proxy-host>:<port>/naver   -e NAVER_API_KEY=aaaaaa   -e NAVER_CLIENT_ID=xxxxxxxx   -e NAVER_CLIENT_SECRET=yyyyyyyy  <registry>/<repo>/naver-mcp:sse
 ```
 
 #### 외부 Proxy (NGINX) 설정
@@ -96,7 +96,6 @@ stringData:
   NAVER_API_KEY: "<your-api-key>"
   NAVER_CLIENT_ID: "<your-client-id>"
   NAVER_CLIENT_SECRET: "<your-client-secret>"
-  NAVER_PROFILE: "<your-profile>"
 ---
 apiVersion: apps/v1
 kind: Deployment
