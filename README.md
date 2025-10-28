@@ -14,7 +14,7 @@
 | `NAVER_API_KEY` | **필수** | - | Naver API 인증 키 |
 | `NAVER_CLIENT_ID` | **필수** | - | Naver API Client ID |
 | `NAVER_CLIENT_SECRET` | **필수** | - | Naver API Client Secret |
-| `NAVER_PROFILE` | 선택 | - | 배포 프로파일 (`prod`, `dev` 등) |
+| `NAVER_PROFILE` | **필수** | - | 서비스 또는 배포 환경을 식별하는 고유 프로파일 ID |
 | `BRIDGE_PORT` | 선택 | `8080` | 서버 포트 |
 | `NODE_ENV` | 선택 | `production` | Node 환경 변수 |
 
