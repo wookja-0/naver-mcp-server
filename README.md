@@ -1,8 +1,10 @@
-# Naver MCP Server – SSE 배포 가이드 (단일 Dockerfile)
+# Naver Search MCP Server – SSE 배포 가이드 (단일 Dockerfile)
 
-**Naver MCP Server**는 Naver Open API를 SSE(Server-Sent Events) 기반으로 노출하는 단일 컨테이너 서비스입니다.  
-단일 Dockerfile 하나로 빌드/실행하며, `NAVER_API_BASE_URL` 환경변수 하나로 Naver API 또는 프록시를 지정할 수 있습니다.  
-앱은 SSE 노출을 위해 컨테이너 내부에서 `mcp-proxy`를 사용합니다.
+**Naver Search MCP Server**는 Naver 검색 및 DataLab Open API를 MCP(Server-Sent Events) 프로토콜로 중계하는 단일 컨테이너 서비스입니다.  
+하나의 Dockerfile로 빌드 및 실행할 수 있으며, `NAVER_API_BASE_URL` 환경 변수만으로 Naver API 또는 프록시를 지정할 수 있습니다.  
+앱은 SSE 통신을 위해 컨테이너 내부에서 `mcp-proxy`를 사용합니다.
+
+이 서버는 LangChain 등 MCP 클라이언트가 Naver 검색 및 DataLab API와 실시간으로 통신할 수 있도록 설계되었습니다.
 
 ---
 
